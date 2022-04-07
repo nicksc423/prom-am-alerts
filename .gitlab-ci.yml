@@ -1,0 +1,43 @@
+stages:
+    - deploy
+
+.deploy-base:
+  stage: deploy
+  script:
+    - envsubst < alerts/dcp-alerts.yaml > alerts.yaml && mv alerts.yaml alerts/dcp-alerts.yaml
+    - helm repo add stable https://charts.helm.sh/stable
+    - helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+    - helm repo update
+    # Install plugin to set values to a directory if not already installed
+    - helm plugin install https://github.com/nico-ulbricht/helm-multivalues || true
+    # Install a fairly vanilla Prometheus instance for local metrics monitoring within the cluster.
+    - |
+        helm multivalues upgrade --install prometheus prometheus-community/prometheus \
+        --namespace monitoring \
+        --version 11.12.1 \
+        -f alerts \
+        --reuse-values
+
+Deploy Dev:
+  extends: .deploy-base
+  tags:
+    - shell
+  environment:
+      name: development
+  when: manual
+
+Deploy Staging:
+  extends: .deploy-base
+  tags:
+    - shell
+  environment:
+      name: staging
+  when: manual
+
+Deploy Prod:
+  extends: .deploy-base
+  tags:
+    - hell
+  environment:
+      name: prod
+  when: manual

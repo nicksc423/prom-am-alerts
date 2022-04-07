@@ -1,0 +1,11 @@
+serverFiles:
+  alerts:
+    jvm:
+      - alert: JvmMemoryFillingUp
+        expr: (sum by (instance)(jvm_memory_used_bytes{area="heap"}) / sum by (instance)(jvm_memory_max_bytes{area="heap"})) * 100 > 85
+        for: 1h
+        labels:
+          severity: notify
+        annotations:
+          summary: JVM memory filling up
+          description: "JVM memory is filling up (> 85%)"

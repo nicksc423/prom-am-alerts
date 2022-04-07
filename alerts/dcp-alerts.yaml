@@ -1,0 +1,52 @@
+serverFiles:
+  alerts:
+    dcp:
+      - alert: Healthcheck
+        expr: vector(1)
+        labels:
+          severity: healthcheck
+        annotations:
+          description: Healthcheck
+          summary: $CI_ENVIRONMENT_NAME checking in
+      - alert: "Kong-Ingress is Down"
+        expr: kube_deployment_status_replicas{namespace="dcp", deployment="kong-ingress-plane"} > 0 and kube_deployment_status_replicas_available{namespace="dcp", deployment="kong-ingress-plane"} == 0
+        labels:
+          severity: alert
+        annotations:
+          description: Kong-Ingress is Down
+          summary: Check Kong Ingress deployment
+      - alert: "App Service is Down"
+        expr: kube_deployment_status_replicas{namespace="app", deployment="service"} > 0 and kube_deployment_status_replicas_available{namespace="app", deployment="service"} == 0
+        labels:
+          severity: alert
+        annotations:
+          description: App Service is Down
+          summary: Check App Service deployment
+      - alert: "App Service Heavy load detected"
+        expr: sum(increase(http_server_requests_seconds_count{application="service",component="app", uri!~"/actuator/.*"}[60m])) > 3600
+        labels:
+          severity: alert
+        annotations:
+          description: App-Service recieving lots of traffic
+          summary: RequestsPerHour greater than 3600
+      - alert: "Kong bad responses"
+        expr: rate(kong_http_status{code =~ "40[^4]|^5.."}[1m]) > 10
+        labels:
+          severity: alert
+        annotations:
+          description: Kong responded with more than 10 4XX or 5XX
+          summary: Kong Bad Responses Detected
+      - alert: Cronjob Failed
+        expr: sum by (owner_name) (clamp_max(topk (3, max by (namespace, owner_name, job_name) (kube_job_status_start_time * on (job_name) group_left(owner_name) max by (namespace, owner_name, job_name) (kube_job_owner{owner_kind="CronJob"}))),1) * on (namespace, job_name) group_left kube_job_status_failed) == 3
+        labels:
+          severity: alert
+        annotations:
+          summary: Cronjob Failed
+          description: A cronjob failed three times in a row
+      - alert: CronJobRunning
+        expr: time() - max(kube_job_status_start_time * ON(job_name) GROUP_RIGHT() kube_job_labels{label_cronjob!=""}) BY (label_cronjob) > 1200
+        labels:
+          severity: notify
+        annotations:
+          description: CronJob has been running for more than 10 minutes
+          summary: CronJob didn't finish after 10m

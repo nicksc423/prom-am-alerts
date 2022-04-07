@@ -1,0 +1,27 @@
+serverFiles:
+  alerts:
+    certs:
+      - alert: CertificateExpiring
+        expr: nginx_ingress_controller_ssl_expire_time_seconds < 432000
+        for: 0m
+        labels:
+          severity: alert
+        annotations:
+          summary: Certificates Expiring
+          description: Detected atleast one certificate expiring soon
+      - alert: CertMgrExpirationWarning
+        expr: certmanager_certificate_expiration_timestamp_seconds < 432000
+        for: 0m
+        labels:
+          severity: alert
+        annotations:
+          summary: CertMgr Certificates Expiring
+          description: Detected atleast one certificate expiring soon via CertMgr
+      - alert: CertMgrReadyError
+        expr: certmanager_certificate_ready_status{condition="False"} > 0
+        for: 0m
+        labels:
+          severity: alert
+        annotations:
+          summary: CertMgr Certificates has an Error
+          description: Detected atleast one certificate with an error state
